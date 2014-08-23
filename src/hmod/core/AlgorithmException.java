@@ -5,7 +5,7 @@ package hmod.core;
  * Implements a general exception for the hMod library.
  * @author Enrique Urra C.
  */
-public class AlgorithmException extends Exception
+public class AlgorithmException extends RuntimeException
 {
     /**
      * Constructor, which provide an exception message.

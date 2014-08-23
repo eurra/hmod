@@ -10,7 +10,6 @@ public interface Operator
 {
     /**
      * Executes the operation.
-     * @return A boolean result of the operation.
      * @throws hmod.core.AlgorithmException
      */
     void execute() throws AlgorithmException;

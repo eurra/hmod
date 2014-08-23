@@ -1,10 +1,2 @@
 Manifest-Version: 1.0
 X-COMMENT: Main-Class will be added automatically by build
-
-Name: hmod/launcher/scripts/
-Script-Bundle: true
-Script-Bundle-Title: hMod Launcher default extensions
-Script-Bundle-Version: 1.0
-Script-Bundle-Description: A set of scripts used to configure the basic elements of the hMod Launcher.
-Launcher-Extension: true
-Launcher-Extension-Main-Script: hmod.launcher.scripts.CoreExtensionScript
