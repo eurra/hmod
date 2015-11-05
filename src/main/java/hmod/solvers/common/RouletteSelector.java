@@ -2,99 +2,142 @@
 package hmod.solvers.common;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import optefx.util.random.RandomTool;
 
 /**
  *
  * @author Enrique Urra C.
  */
-public final class RouletteSelector
+public final class RouletteSelector<T> implements Selector<T>
 {
-    private final List<Double> entries;
-    private double calculatedSum = -1.0;
-    private double amplificator = 0;
-
-    public RouletteSelector(List<Double> entries)
+    public static RouletteSelector<Double> defaultRoulette()
     {
-        this.entries = Objects.requireNonNull(entries, "null entries");
+        return new RouletteSelector<>((v) -> v);
     }
     
-    public RouletteSelector setCalculatedSum(double sum) throws IllegalArgumentException
+    private final List<T> orderedElements;
+    private final Function<T, Double> converter;
+    private double amplificator = 1.0;
+    private double currentSum = 0.0;
+    
+    public RouletteSelector(Function<T, Double> converter)
     {
-        if(sum <= 0.0) throw new IllegalArgumentException("Illegal sum: " + sum);
-        calculatedSum = sum;
+        this(10, converter);
+    }
+    
+    public RouletteSelector(int size, Function<T, Double> converter)
+    {
+        this.converter = Objects.requireNonNull(converter, "null converter");
+        this.orderedElements = new ArrayList<>(size);
+    }
+    
+    @Override
+    public RouletteSelector<T> addElement(T elem)
+    {
+        orderedElements.add(elem);
+        currentSum += converter.apply(elem);
         
         return this;
     }
     
-    public RouletteSelector setAmplificator(double ampl) throws IllegalArgumentException
+    @Override
+    public RouletteSelector<T> addAll(Collection<T> elements)
     {
-        if(ampl < 0) throw new IllegalArgumentException("Illegal amplificator: " + ampl);
+        for(T elem : elements)
+            addElement(elem);
+        
+        return this;
+    }
+    
+    @Override
+    public RouletteSelector<T> removeElement(T elem)
+    {
+        orderedElements.remove(elem);
+        currentSum -= converter.apply(elem);
+        
+        return this;
+    }
+    
+    public RouletteSelector<T> sortElements(Comparator<? super T> comp)
+    {
+        orderedElements.sort(comp);
+        return this;
+    }
+    
+    @Override
+    public RouletteSelector<T> clear()
+    {
+        orderedElements.clear();
+        currentSum = 0.0;
+        
+        return this;
+    }
+    
+    @Override
+    public boolean isEmpty()
+    {
+        return orderedElements.isEmpty();
+    }
+    
+    @Override
+    public int getElementsCount()
+    {
+        return orderedElements.size();
+    }
+    
+    public RouletteSelector<T> setAmplificator(double ampl) throws IllegalArgumentException
+    {
+        if(ampl < 1.0) throw new IllegalArgumentException("Illegal amplificator: " + ampl);
         amplificator = ampl;
         
         return this;
     }
     
-    public int select()
+    @Override
+    public T select()
     {
-        List<Double> entriesToUse = entries;
-        boolean sumCalculated = calculatedSum != -1.0;
-        boolean requiresAmplification = amplificator > 0;
+        List<Double> valuesToUse = new ArrayList<>(orderedElements.size());
+        double sumToUse = 0.0;
+        boolean requiresAmplification = amplificator > 1.0;
         
-        if(!sumCalculated)
-            calculatedSum = 0.0;
-        
-        int entriesCount = entriesToUse.size();
-        List<Double> finalEntries;
-        
-        if(!sumCalculated || requiresAmplification)
+        for(T elem : orderedElements)
         {
-            AtomicReference<Integer> multiplier = new AtomicReference<>(entriesCount);
-            finalEntries = new ArrayList<>(entriesCount);
+            double elemValue = converter.apply(elem);
             
-            for(int i = 0; i < entriesCount; i++)
+            if(requiresAmplification)
             {
-                double val = entriesToUse.get(i);
-                double finalValue;
-                
-                if(requiresAmplification)
-                {
-                    double currMultiplier = multiplier.getAndUpdate(n -> n - 1);
-                    finalValue = val * amplificator * currMultiplier * (1 - Math.sqrt((entriesCount - currMultiplier) / entriesCount)); 
-                }
-                else
-                {
-                    finalValue = val;
-                }
-
-                if(!sumCalculated)
-                    calculatedSum += finalValue;
-
-                finalEntries.add(finalValue);
+                double elemProp = elemValue / currentSum;
+                double amplifiedValue = elemValue * (1 + elemProp * amplificator);
+                valuesToUse.add(amplifiedValue);
+                sumToUse += amplifiedValue;
+            }
+            else
+            {
+                valuesToUse.add(elemValue);
+                sumToUse += elemValue;
             }
         }
-        else
-        {
-            finalEntries = entriesToUse;
-        }
         
+        int entriesCount = valuesToUse.size();
         double prob = RandomTool.getDouble();
         double acumProb = 0.0;
 
         for(int i = 0; i < entriesCount; i++)
         {
-            double rangeDiff = finalEntries.get(i) / calculatedSum;
+            double rangeDiff = valuesToUse.get(i) / sumToUse;
             double upperRange = acumProb + rangeDiff;
 
             if(prob >= acumProb && prob <= upperRange)
-                return i;
+                return orderedElements.get(i);
             else
                 acumProb += rangeDiff;
         }
         
-        return entriesCount - 1;
+        return orderedElements.get(entriesCount - 1);
     }
 }
