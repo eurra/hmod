@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="maven-antrun-" default="main"  >
+<target name="main">
+  <delete dir="C:\Users\Usuario\Documents\NetBeansProjects\hmod\hmod-launcher/../launcher-testing/bin/"/>
+  <copy todir="C:\Users\Usuario\Documents\NetBeansProjects\hmod\hmod-launcher/../launcher-testing/">
+    <fileset dir="C:\Users\Usuario\Documents\NetBeansProjects\hmod\hmod-launcher\target/hmod-launcher-1.0.0-SNAPSHOT-dist/"/>
+  </copy>
+</target>
+</project>
