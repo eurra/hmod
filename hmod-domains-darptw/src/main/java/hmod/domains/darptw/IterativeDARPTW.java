@@ -31,7 +31,7 @@ public final class IterativeDARPTW
                             IterativeHeuristic iHeu,
                             IterationHandler ih,
                             TimeElapsedHandler teh,
-                            AltDARPTWDomain darptw)
+                            DARPTWDomain darptw)
     {
         cr.provide(new IterativeDARPTW(iHeu, ih, teh, darptw));
     }
@@ -41,12 +41,12 @@ public final class IterativeDARPTW
     private IterativeDARPTW(IterativeHeuristic iHeu,
                             IterationHandler ih,
                             TimeElapsedHandler teh,
-                            AltDARPTWDomain darptw)
+                            DARPTWDomain darptw)
     {
         main.append(block(
             print(() -> "This is the iteration number " + ih.getCurrentIteration()),
             print(() -> "There are " + teh.getElapsedSeconds() + " secs. elapsed"),
-            darptw.heuristic(AltDARPTWDomain.MOVE_RANDOM_CLIENT)
+            darptw.heuristic(DARPTWDomain.MOVE_RANDOM_CLIENT)
         ));
         
         iHeu.initReporting().append(

@@ -31,10 +31,9 @@ public final class DARPTWAdapter
                                       LLHeuristicsRegister llhr)
     {
         llhr.setInitHeuristic(block(darptw.loadNewSolution(), darptw.saveSolution()));
-        llhr.setFinishHeuristic(darptw.reportBestSolution());
+        llhr.setFinishHeuristic(darptw.reportSolution());
         
-        llhr.addHeuristic(tagLowLevelHeuristic(
-            getHeuristic(darptw, darptw.heuristic(DARPTWDomain.MOVE_RANDOM_CLIENT)),
+        llhr.addHeuristic(tagLowLevelHeuristic(getHeuristic(darptw, darptw.heuristic(DARPTWDomain.MOVE_RANDOM_CLIENT)),
             new LowLevelHeuristicInfo.Builder().
                 id("move-random-client").
                 name("Move Random Client").
@@ -42,8 +41,7 @@ public final class DARPTWAdapter
                 build()
         ));
         
-        llhr.addHeuristic(tagLowLevelHeuristic(
-            getHeuristic(darptw, darptw.heuristic(DARPTWDomain.MOVE_SINGLE_EVENT)),
+        llhr.addHeuristic(tagLowLevelHeuristic(getHeuristic(darptw, darptw.heuristic(DARPTWDomain.MOVE_SINGLE_EVENT)),
             new LowLevelHeuristicInfo.Builder().
                 id("move-single-event").
                 name("Move Single Event").
@@ -51,8 +49,7 @@ public final class DARPTWAdapter
                 build()
         ));
         
-        llhr.addHeuristic(tagLowLevelHeuristic(
-            getHeuristic(darptw, darptw.heuristic(DARPTWDomain.MOVE_CLIENT_ALL_ROUTES)),
+        llhr.addHeuristic(tagLowLevelHeuristic(getHeuristic(darptw, darptw.heuristic(DARPTWDomain.MOVE_CLIENT_ALL_ROUTES)),
             new LowLevelHeuristicInfo.Builder().
                 id("move-client-all-routes").
                 name("Move Client All Routes").
@@ -60,8 +57,7 @@ public final class DARPTWAdapter
                 build()
         ));
         
-        llhr.addHeuristic(tagLowLevelHeuristic(
-            getHeuristic(darptw, darptw.heuristic(DARPTWDomain.MOVE_EVENT_ALL_ROUTES)),
+        llhr.addHeuristic(tagLowLevelHeuristic(getHeuristic(darptw, darptw.heuristic(DARPTWDomain.MOVE_EVENT_ALL_ROUTES)),
             new LowLevelHeuristicInfo.Builder().
                 id("move-event-all-routes").
                 name("Move Event All Routes").

@@ -2,6 +2,7 @@
 package hmod.domains.darptw;
 
 import hmod.core.AlgorithmException;
+import hmod.core.Condition;
 import static hmod.core.FlowchartFactory.*;
 import hmod.core.Statement;
 import hmod.solvers.common.IterationHandler;
@@ -419,6 +420,15 @@ public final class DARPTWProcesses
             
             ih.resetIterations();
             ih.setMaxIterations(clientsCount);
+        };
+    }
+    
+    public static Condition thereAreRoutes(RouteSet rs, int minRoutes) {
+        return () -> {
+            if(rs.getRoutesCount() >= minRoutes)
+                return true;
+            
+            return false;
         };
     }
     
