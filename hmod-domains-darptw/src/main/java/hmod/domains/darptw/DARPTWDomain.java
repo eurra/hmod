@@ -9,8 +9,6 @@ import hmod.core.ValidableRoutine;
 import hmod.solvers.common.MutableIterationHandler;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 import optefx.loader.ComponentRegister;
 import optefx.loader.LoadsComponent;
 import optefx.loader.Parameter;
@@ -24,13 +22,13 @@ import optefx.loader.Selector;
  *
  * @author Enrique Urra C.
  */
-public final class DARPTWDomain
+public final class AltDARPTWDomain
 {
     public static class DefaultHeuristic extends SelectableValue<Statement> implements DARPTWHeuristic
     {
         private DefaultHeuristic()
         {
-            super(DARPTWDomain.class, (d) -> d.heuristics);
+            super(AltDARPTWDomain.class, (d) -> d.heuristics);
         }
     }
     
@@ -53,9 +51,6 @@ public final class DARPTWDomain
     
     public static final DefaultHeuristic FILL_AVAILABLE_CLIENTS_RANDOMLY = new DefaultHeuristic();
     public static final DefaultHeuristic MOVE_RANDOM_CLIENT = new DefaultHeuristic();
-    public static final DefaultHeuristic MOVE_SINGLE_EVENT = new DefaultHeuristic();
-    public static final DefaultHeuristic MOVE_CLIENT_ALL_ROUTES = new DefaultHeuristic();
-    public static final DefaultHeuristic MOVE_EVENT_ALL_ROUTES = new DefaultHeuristic();
     
     @LoadsComponent({ SolutionBuilder.class, SolutionHandler.class })
     public static void loadSolutionData(ComponentRegister cr,
@@ -98,7 +93,6 @@ public final class DARPTWDomain
     
     private final Consumer<DARPTWSolution> setInputSolution;    
     private final Statement loadNewSolution;
-    private final Statement loadSolution;
     private final Statement saveSolution;
     private final Supplier<DARPTWSolution> getOutputSolution;
     private final Statement reportSolution;
@@ -132,8 +126,7 @@ public final class DARPTWDomain
                 clients::clear,
                 DARPTWProcesses.fillAvailableClients(sb, pi, clients),
                 DARPTWProcesses.initIterationForClients(iterator, clients),
-                While(NOT(iterator::areIterationsFinished)).Do(
-                    DARPTWProcesses.selectClientFromIterator(iterator, clients, client),
+                While(NOT(iterator::areIterationsFinished)).Do(DARPTWProcesses.selectClientFromIterator(iterator, clients, client),
                     DARPTWProcesses.selectRandomRoute(sb, route),
                     DARPTWProcesses.selectRandomInsertionPointInRoute(route, pos),
                     DARPTWProcesses.insertClient(pos, route, client),
@@ -231,9 +224,7 @@ public final class DARPTWDomain
         }));
     }
     
-    public Consumer<DARPTWSolution> setInputSolution() { return setInputSolution; }
     public Statement loadNewSolution() { return loadNewSolution; }
-    public Statement loadSolution() { return loadSolution; }
     public Statement saveSolution() { return saveSolution; }
     public Supplier<DARPTWSolution> getOutputSolution() { return getOutputSolution; };
     public Statement reportSolution() { return reportSolution; }
