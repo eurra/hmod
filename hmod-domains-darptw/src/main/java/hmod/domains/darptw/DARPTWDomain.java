@@ -9,6 +9,8 @@ import hmod.core.ValidableRoutine;
 import hmod.solvers.common.MutableIterationHandler;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import optefx.loader.ComponentRegister;
 import optefx.loader.LoadsComponent;
 import optefx.loader.Parameter;
@@ -22,13 +24,13 @@ import optefx.loader.Selector;
  *
  * @author Enrique Urra C.
  */
-public final class AltDARPTWDomain
+public final class DARPTWDomain
 {
     public static class DefaultHeuristic extends SelectableValue<Statement> implements DARPTWHeuristic
     {
         private DefaultHeuristic()
         {
-            super(AltDARPTWDomain.class, (d) -> d.heuristics);
+            super(DARPTWDomain.class, (d) -> d.heuristics);
         }
     }
     
@@ -51,6 +53,9 @@ public final class AltDARPTWDomain
     
     public static final DefaultHeuristic FILL_AVAILABLE_CLIENTS_RANDOMLY = new DefaultHeuristic();
     public static final DefaultHeuristic MOVE_RANDOM_CLIENT = new DefaultHeuristic();
+    public static final DefaultHeuristic MOVE_CLIENT_ALL_ROUTES = new DefaultHeuristic();
+    public static final DefaultHeuristic MOVE_SINGLE_EVENT = new DefaultHeuristic();
+    public static final DefaultHeuristic MOVE_EVENT_ALL_ROUTES = new DefaultHeuristic();
     
     @LoadsComponent({ SolutionBuilder.class, SolutionHandler.class })
     public static void loadSolutionData(ComponentRegister cr,
@@ -93,6 +98,7 @@ public final class AltDARPTWDomain
     
     private final Consumer<DARPTWSolution> setInputSolution;    
     private final Statement loadNewSolution;
+    private final Statement loadSolution;
     private final Statement saveSolution;
     private final Supplier<DARPTWSolution> getOutputSolution;
     private final Statement reportSolution;
@@ -225,8 +231,10 @@ public final class AltDARPTWDomain
     }
     
     public Statement loadNewSolution() { return loadNewSolution; }
+    public Statement loadSolution() { return loadSolution; }
     public Statement saveSolution() { return saveSolution; }
     public Supplier<DARPTWSolution> getOutputSolution() { return getOutputSolution; };
+    public Consumer<DARPTWSolution> setInputSolution() { return setInputSolution; };
     public Statement reportSolution() { return reportSolution; }
     public Statement heuristic(DefaultHeuristic h) { return heuristics.get(h); }
     public Routine solutionCheck() { return solutionCheck; }
