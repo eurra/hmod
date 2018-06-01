@@ -2,7 +2,10 @@
 package hmod.domains.darptw;
 
 import static hmod.core.FlowchartFactory.*;
+import hmod.core.PlaceholderStatement;
+import hmod.core.Routine;
 import hmod.core.Statement;
+import hmod.core.ValidableRoutine;
 import hmod.solvers.common.MutableIterationHandler;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +15,8 @@ import optefx.loader.ComponentRegister;
 import optefx.loader.LoadsComponent;
 import optefx.loader.Parameter;
 import optefx.loader.ParameterRegister;
+import optefx.loader.Processable;
+import optefx.loader.Resolvable;
 import optefx.loader.SelectableValue;
 import optefx.loader.Selector;
 
@@ -29,7 +34,7 @@ public final class DARPTWDomain
         }
     }
     
-    public static final Parameter<String> INSTANCE = new Parameter<>("DARPTWDomain.INSTANCE_FILE");
+    public static final Parameter<String> INSTANCE = new Parameter<>("DARPTWDomain.INSTANCE");    
     public static final Parameter<Double> WEIGHT_TRANSIT_TIME = new Parameter<>("DARPTWDomain.WEIGHT_TRANSIT_TIME");
     public static final Parameter<Double> WEIGHT_ROUTE_DURATION = new Parameter<>("DARPTWDomain.WEIGHT_ROUTE_DURATION");
     public static final Parameter<Double> WEIGHT_SLACK_TIME = new Parameter<>("DARPTWDomain.WEIGHT_SLACK_TIME");
@@ -39,6 +44,12 @@ public final class DARPTWDomain
     public static final Parameter<Double> WEIGHT_TIME_WINDOWS_VIOLATION = new Parameter<>("DARPTWDomain.WEIGHT_TIME_WINDOWS_VIOLATION");
     public static final Parameter<Double> WEIGHT_MAXIMUM_RIDE_TIME_VIOLATION = new Parameter<>("DARPTWDomain.WEIGHT_MAXIMUM_RIDE_TIME_VIOLATION");
     public static final Parameter<Double> WEIGHT_MAXIMUM_ROUTE_DURATION_VIOLATION = new Parameter<>("DARPTWDomain.WEIGHT_MAXIMUM_ROUTE_DURATION_VIOLATION");
+    public static final Parameter<DARPTWInitializer> INITIALIZER = new Parameter<>("DARPTWDomain.INITIALIZER");
+    
+    public static final DARPTWInitializer DEFAULT_INIT = Resolvable.boundTo(DARPTWInitializer.class,
+        DARPTWDomain.class, 
+        (domain) -> domain.initHeuristic
+    );
     
     public static final DefaultHeuristic FILL_AVAILABLE_CLIENTS_RANDOMLY = new DefaultHeuristic();
     public static final DefaultHeuristic MOVE_RANDOM_CLIENT = new DefaultHeuristic();
@@ -46,60 +57,71 @@ public final class DARPTWDomain
     public static final DefaultHeuristic MOVE_CLIENT_ALL_ROUTES = new DefaultHeuristic();
     public static final DefaultHeuristic MOVE_EVENT_ALL_ROUTES = new DefaultHeuristic();
     
-    @LoadsComponent({
-        DARPTWDomain.class,
-        ProblemInstance.class,
-        SolutionHandler.class,
-        SolutionBuilder.class
-    })
-    public static void load(ComponentRegister cr,
-                            ParameterRegister pr)
+    @LoadsComponent({ SolutionBuilder.class, SolutionHandler.class })
+    public static void loadSolutionData(ComponentRegister cr,
+                                        ParameterRegister pr,
+                                        ProblemInstance pi)
     {
-        MutableFactorMap weightsMap = new MutableFactorMap();
-        
+        MutableFactorMap weightsMap = new MutableFactorMap();        
         weightsMap.addFactor(Factor.TRANSIT_TIME, FactorValue.create(pr.getRequiredValue(WEIGHT_TRANSIT_TIME)));
         weightsMap.addFactor(Factor.ROUTE_DURATION, FactorValue.create(pr.getRequiredValue(WEIGHT_ROUTE_DURATION)));
         weightsMap.addFactor(Factor.SLACK_TIME, FactorValue.create(pr.getRequiredValue(WEIGHT_SLACK_TIME)));
         weightsMap.addFactor(Factor.RIDE_TIME, FactorValue.create(pr.getRequiredValue(WEIGHT_RIDE_TIME)));
         weightsMap.addFactor(Factor.EXCESS_RIDE_TIME, FactorValue.create(pr.getRequiredValue(WEIGHT_EXCESS_RIDE_TIME)));
         weightsMap.addFactor(Factor.WAIT_TIME, FactorValue.create(pr.getRequiredValue(WEIGHT_WAIT_TIME)));
-        
-        String file = pr.getRequiredValue(INSTANCE);
-        ProblemInstance pi = cr.provide(DARPTWFactory.getInstance().createProblemInstance(file));
-        
-        FactorValue twvWeight = FactorValue.create(pr.isValueSet(WEIGHT_TIME_WINDOWS_VIOLATION) ? pr.getValue(WEIGHT_TIME_WINDOWS_VIOLATION) : pi.getClientsCount());
-        FactorValue mrtvWeight = FactorValue.create(pr.isValueSet(WEIGHT_MAXIMUM_RIDE_TIME_VIOLATION) ? pr.getValue(WEIGHT_MAXIMUM_RIDE_TIME_VIOLATION) : pi.getClientsCount());
-        FactorValue mrdvWeight = FactorValue.create(pr.isValueSet(WEIGHT_MAXIMUM_ROUTE_DURATION_VIOLATION) ? pr.getValue(WEIGHT_MAXIMUM_ROUTE_DURATION_VIOLATION) : pi.getClientsCount());
-        weightsMap.addFactor(Factor.TIME_WINDOWS_VIOLATION, twvWeight);
-        weightsMap.addFactor(Factor.MAXIMUM_RIDE_TIME_VIOLATION, mrtvWeight);
-        weightsMap.addFactor(Factor.MAXIMUM_ROUTE_DURATION_VIOLATION, mrdvWeight);
+        weightsMap.addFactor(Factor.TIME_WINDOWS_VIOLATION, FactorValue.create(pi.getClientsCount()));
+        weightsMap.addFactor(Factor.MAXIMUM_RIDE_TIME_VIOLATION, FactorValue.create(pi.getClientsCount()));
+        weightsMap.addFactor(Factor.MAXIMUM_ROUTE_DURATION_VIOLATION, FactorValue.create(pi.getClientsCount()));
         
         SolutionBuilder sb = cr.provide(new SolutionBuilder(pi));
-        SolutionHandler sh = cr.provide(new SolutionHandler(pi, sb, weightsMap));
-        cr.provide(new DARPTWDomain(sh, pi, sb));
+        cr.provide(new SolutionHandler(pi, sb, weightsMap));
     }
     
-    private final Consumer<DARPTWSolution> setInputSolution;
+    @LoadsComponent(ProblemInstance.class)
+    public static void loadProblemInstance(ComponentRegister cr, ParameterRegister pr)
+    {
+        String file = pr.getRequiredValue(INSTANCE);
+        cr.provide(DARPTWFactory.getInstance().createProblemInstance(file));
+    }
+    
+    @LoadsComponent(DARPTWDomain.class)
+    public static void loadDomain(ComponentRegister cr,
+                                  ParameterRegister pr,
+                                  ProblemInstance pi,
+                                  SolutionHandler sh,
+                                  SolutionBuilder sb)
+    {
+        DARPTWDomain domain = cr.provide(new DARPTWDomain(sh, pi, sb));        
+        DARPTWInitializer initResolver = pr.getRequiredValue(INITIALIZER);
+        pr.addBoundHandler(initResolver, (st) -> domain.init.set(st));
+    }
+    
+    private final Consumer<DARPTWSolution> setInputSolution;    
     private final Statement loadNewSolution;
     private final Statement loadSolution;
     private final Statement saveSolution;
     private final Supplier<DARPTWSolution> getOutputSolution;
-    private final Statement reportBestSolution;
-    private final Selector<DARPTWHeuristic, Statement> heuristics = new Selector<>();
+    private final Statement reportSolution;
+    private final PlaceholderStatement<Statement> init = new PlaceholderStatement<>();
+    private final Statement initHeuristic;
+    private final Selector<DefaultHeuristic, Statement> heuristics = new Selector<>();
+    private final ValidableRoutine solutionCheck = new ValidableRoutine("DARPTWDomain.solutionCheck", false);
 
-    private DARPTWDomain(SolutionHandler sh,
-                         ProblemInstance pi,
-                         SolutionBuilder sb)
+    private DARPTWDomain(SolutionHandler sh, ProblemInstance pi, SolutionBuilder sb)
     {
-    
         setInputSolution = (sol) -> sh.setInputSolution(sol);
-        reportBestSolution = DARPTWProcesses.reportResult(sh);
-        saveSolution = sh::saveSolutionToOutput;
+        reportSolution = DARPTWProcesses.reportResult(sh);
+        saveSolution = sh::saveSolutionToOutput; 
         getOutputSolution = sh::getOutputSolution;
+        loadSolution = If(sh::isInputSolutionProvided).then(sh::loadInputSolution);
         
-        loadSolution = If(sh::isInputSolutionProvided).then(sh::loadInputSolution); 
+        loadNewSolution = block(
+            sh::loadEmptySolution,
+            init,
+            solutionCheck
+        );
         
-        heuristics.add(FILL_AVAILABLE_CLIENTS_RANDOMLY, block(() -> {            
+        initHeuristic = block(() -> {            
             List<Client> clients = new ArrayList<>();
             MutableIterationHandler iterator = new MutableIterationHandler();
             ClientHandler client = new ClientHandler();
@@ -118,88 +140,7 @@ public final class DARPTWDomain
                     iterator::advanceIteration
                 )
             );
-            
-            /*
-            
-            
-            
-            ////////////////////////////////////
-            
-            ListVariable<Client> clients = new ListVariable<>();
-            MutableIterationVariable iterator = new MutableIterationVariable();
-            SettableVariable<Client> client = new SettableVariable<>();
-            SettableVariable<Route> route = new SettableVariable<>();
-            SettableVariable<Integer> pos = new SettableVariable<>();
-            
-            return block(
-                set(clients, ArrayList::new),
-                set(iterator, FlowchartFactory::new),
-                clients::clear,
-                While(NOT(iterator::isFinished)).Do(
-                    set(client, DARPTWProcesses::selectClientFromIterator, iterator, clients),
-                    set(route, DARPTWProcesses::selectRandomRoute, SOLUTION_BUILDER),
-                    set(pos, DARPTWProcesses::selectRandomInsertionPointInRoute, route),
-                    run(DARPTWProcesses::insertClient, pos, route, client),
-                    run(iterator::advance)
-                )
-            );
-            
-            ////////////////////////////////////
-            
-            return block(
-                set(clients, ArrayList::new),
-                set(iterator, FlowchartFactory::new),
-                clients.clear(),
-                While(NOT(iterator.isFinished())).Do(
-                    set(client, DARPTWProcesses.selectClientFromIterator(iterator, clients)),
-                    set(route, DARPTWProcesses.selectRandomRoute(SOLUTION_BUILDER)),
-                    set(pos, DARPTWProcesses.selectRandomInsertionPointInRoute(route)),
-                    run(DARPTWProcesses.insertClient(pos, route, client)),
-                    run(iterator.advance())
-                )
-            );        
-            
-            ////////////////////////////////////
-            
-            Variable<List<Client>> clients = Variable.create();
-            Variable<MutableIterationHandler> iterator = Variable.create();
-            Variable<Client> client = Variable.create();
-            Variable<Route> route = Variable.create();
-            Variable<Integer> pos = Variable.create();
-                       
-            return block(
-                set(clients, ArrayList::new),
-                set(iterator, FlowchartFactory::new),
-                run(clients, c -> c.clear()),
-                While(NOT(eval(iterator, i -> i.isFinished()))).Do(
-                While(NOT(eval(IterationHandler::isFinished))).Do(
-                    set(client, DARPTWProcesses::selectClientFromIterator, iterator, clients),
-                    set(route, DARPTWProcesses::selectRandomRoute, SOLUTION_BUILDER),
-                    set(pos, DARPTWProcesses::selectRandomInsertionPointInRoute, route),
-                    run(DARPTWProcesses::insertClient, pos, route, client),
-                    run(iterator, i -> i.advance())
-                )
-            );
-            
-            ////////////////////////////////////
-            
-                List<Client> clients = new ArrayList<>();
-                FlowchartFactory iterator = new FlowchartFactory();
-                clients.clear();
-                while(!iterator.isFinished()) {
-                    Client client = DARPTWProcesses.selectClientFromIterator(iterator, clients);
-                    Route route = DARPTWProcesses.selectRandomRoute(SOLUTION_BUILDER);
-                    Integer pos = DARPTWProcesses.selectRandomInsertionPointInRoute(route);
-                    DARPTWProcesses.insertClient(pos, route, client);
-                    iterator.advance();
-                }
-            */
-        }));
-        
-        loadNewSolution = block(
-            sh::loadEmptySolution,
-            heuristics.get(FILL_AVAILABLE_CLIENTS_RANDOMLY)
-        );
+        });
         
         heuristics.add(MOVE_RANDOM_CLIENT, block(() -> {
             RouteSet modRoutes = new RouteSet();
@@ -210,12 +151,14 @@ public final class DARPTWDomain
             
             return block(
                 modRoutes::clear,
-                DARPTWProcesses.pickModifiableRoutes(sb, modRoutes),
-                DARPTWProcesses.selectRandomRoute(modRoutes, sourceRoute),
-                DARPTWProcesses.selectOtherRoute(modRoutes, sourceRoute, targetRoute),
-                DARPTWProcesses.selectRandomClientFromRoute(pi, sourceRoute, toMove),
-                DARPTWProcesses.selectRandomInsertionPointInRoute(targetRoute, pos),
-                DARPTWProcesses.moveClient(sourceRoute, targetRoute, toMove, pos)
+                DARPTWProcesses.pickModifiableRoutes(sb, modRoutes), 
+                If(DARPTWProcesses.thereAreRoutes(modRoutes, 2)).then(
+                    DARPTWProcesses.selectRandomRoute(modRoutes, sourceRoute),
+                    DARPTWProcesses.selectOtherRoute(modRoutes, sourceRoute, targetRoute),
+                    DARPTWProcesses.selectRandomClientFromRoute(pi, sourceRoute, toMove),
+                    DARPTWProcesses.selectRandomInsertionPointInRoute(targetRoute, pos),
+                    DARPTWProcesses.moveClient(sourceRoute, targetRoute, toMove, pos)
+                )
             );
         }));
         
@@ -231,7 +174,8 @@ public final class DARPTWDomain
                 randomSet::clear,
                 DARPTWProcesses.storeRandomRouteSequence(sb, randomSet),
                 DARPTWProcesses.initIterationFromRoutes(ih, randomSet),
-                While(NOT(ih::areIterationsFinished)).Do(DARPTWProcesses.selectRouteFromIterator(ih, randomSet, sourceRoute),
+                While(NOT(ih::areIterationsFinished)).Do(
+                    DARPTWProcesses.selectRouteFromIterator(ih, randomSet, sourceRoute),
                     If(sourceRoute::isCurrentRouteModifiable).then(
                         DARPTWProcesses.selectOtherRoute(randomSet, sourceRoute, targetRoute),
                         DARPTWProcesses.selectRandomClientFromRoute(pi, sourceRoute, toMove),
@@ -273,7 +217,8 @@ public final class DARPTWDomain
                 randomSet::clear,
                 DARPTWProcesses.storeRandomRouteSequence(sb, randomSet),
                 DARPTWProcesses.initIterationFromRoutes(ih, randomSet),
-                While(NOT(ih::areIterationsFinished)).Do(DARPTWProcesses.selectRouteFromIterator(ih, randomSet, route),
+                While(NOT(ih::areIterationsFinished)).Do(
+                    DARPTWProcesses.selectRouteFromIterator(ih, randomSet, route),
                     If(route::isCurrentRouteModifiable).then(
                         DARPTWProcesses.pickMovableEvents(pi, route, movableEvents),
                         DARPTWProcesses.pickRandomEventFromList(movableEvents, origEvent),
@@ -291,6 +236,13 @@ public final class DARPTWDomain
     public Statement loadSolution() { return loadSolution; }
     public Statement saveSolution() { return saveSolution; }
     public Supplier<DARPTWSolution> getOutputSolution() { return getOutputSolution; };
-    public Statement reportBestSolution() { return reportBestSolution; }
+    public Statement reportSolution() { return reportSolution; }
     public Statement heuristic(DefaultHeuristic h) { return heuristics.get(h); }
+    public Routine solutionCheck() { return solutionCheck; }
+    
+    @Processable
+    private void process()
+    {
+        solutionCheck.validate();
+    }
 }

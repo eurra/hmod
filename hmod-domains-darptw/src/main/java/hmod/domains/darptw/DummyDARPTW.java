@@ -18,7 +18,7 @@ public class DummyDARPTW
     }
     
     @LoadsComponent
-    public static void load(AltDARPTWDomain domain)
+    public static void load(DARPTWDomain domain)
     {
         domain.solutionCheck().
             apply((st) -> block(createMessage("This is the main code!"), st)).

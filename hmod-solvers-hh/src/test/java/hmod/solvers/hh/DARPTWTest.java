@@ -95,7 +95,8 @@ public class DARPTWTest
             setParameter(IterativeHeuristic.MAX_ITERATIONS, 500).
             setParameter(GenericSelectionHHeuristic.HEURISTIC_SELECTION, BasicOperators.GREEDY).
             setParameter(GenericSelectionHHeuristic.MOVE_ACCEPTANCE, BasicOperators.IMPROVING_OR_EQUALS).
-            setParameter(DARPTWDomain.INSTANCE, "../launcher-testing/input/problems/darptw/pr01.txt");
+            setParameter(DARPTWDomain.INSTANCE, "../launcher-testing/input/problems/darptw/pr01.txt").
+            setParameter(DARPTWDomain.INITIALIZER, DARPTWDomain.DEFAULT_INIT);
         
         configureDARPTWParams(loader);        
         loader.getInstance(Heuristic.class).run();
@@ -118,7 +119,8 @@ public class DARPTWTest
             setParameter(StrategyOscillation.OSCILLATION_MODIFIER, 0.5).
             setParameter(StrategyOscillation.GROW_PROPORTION, 0.5).
             setParameter(AttributiveAcceptance.QUALITY_TOLERANCE, 0.5).
-            setParameter(DARPTWDomain.INSTANCE, "../launcher-testing/input/problems/darptw/pr19.txt");
+            setParameter(DARPTWDomain.INSTANCE, "../launcher-testing/input/problems/darptw/pr19.txt").
+            setParameter(DARPTWDomain.INITIALIZER, DARPTWDomain.DEFAULT_INIT);
         
         configureDARPTWParams(loader);
         loader.getInstance(Heuristic.class).run();
@@ -137,7 +139,8 @@ public class DARPTWTest
             setParameter(DARPTWDomain.INSTANCE, "../launcher-testing/input/problems/darptw/pr01.txt").
             setParameter(StrategyOscillation.OSCILLATION_MODIFIER, 0.5).
             setParameter(StrategyOscillation.GROW_PROPORTION, 0.9).
-            setParameter(AttributiveSelection.AMPLIFICATION_FACTOR, 100.0);
+            setParameter(AttributiveSelection.AMPLIFICATION_FACTOR, 100.0).
+            setParameter(DARPTWDomain.INITIALIZER, DARPTWDomain.DEFAULT_INIT);
         
         configureDARPTWParams(loader);
         loader.getInstance(Heuristic.class).run();
@@ -162,7 +165,8 @@ public class DARPTWTest
             setParameter(StrategyOscillation.OSCILLATION_MODIFIER, 0.5).
             setParameter(StrategyOscillation.GROW_PROPORTION, 0.9).
             setParameter(AttributiveAcceptance.QUALITY_TOLERANCE, 0.5).    
-            setParameter(AttributiveSelection.AMPLIFICATION_FACTOR, 100.0);
+            setParameter(AttributiveSelection.AMPLIFICATION_FACTOR, 100.0).
+            setParameter(DARPTWDomain.INITIALIZER, DARPTWDomain.DEFAULT_INIT);
         
         configureDARPTWParams(loader);
         loader.getInstance(Heuristic.class).run();
